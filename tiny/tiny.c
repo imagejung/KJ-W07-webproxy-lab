@@ -41,5 +41,3 @@ int main(int argc, char **argv) {
     Close(connfd);  // line:netp:tiny:close
   }
 }
-
-// test
