@@ -1,0 +1,6 @@
+{
+    "editor.hover.enabled":false,
+    "editor.codeLens": false,
+    "html.hover.documentation": false,
+    "html.hover.references": false
+}
