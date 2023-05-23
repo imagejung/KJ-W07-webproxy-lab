@@ -1,7 +1,7 @@
 #include "csapp.h"
 
 int main(int argc, char **argv){
-  /* 선언부 */
+  // 선언
   int clientfd;
   char *host, *port, buf[MAXLINE];
   rio_t rio;
