@@ -11,7 +11,7 @@ int main(void) {
   char arg1[MAXLINE], arg2[MAXLINE], content[MAXLINE];
   int n1 = 0, n2 = 0;
 
-  // Extract the two arguments
+  // 두개의 인자 추출
   if ((buf = getenv("QUERY_STRING")) != NULL) {
     p = strchr(buf, '&');
     *p = '\0';

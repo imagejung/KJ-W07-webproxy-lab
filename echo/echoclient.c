@@ -10,17 +10,18 @@ int main(int argc, char **argv){
     fprintf(stderr, "usage: %s <host> ./>\n", argv[0]);
     exit(0);
   }
-
+  // 프로그램 실행시 입력받는 인자 [프로그램명, host, port]
   host = argv[1];
   port = argv[2];
 
-  clientfd = Open_clientfd(host, port); // open_clientfd 함수를 이용해서 소켓을 client fd로 만듦
-  Rio_readinitb(&rio, clientfd); // clientfd에 rio의 주소를 연결
+  clientfd = Open_clientfd(host, port); // Open_clientfd 함수를 이용해서 소켓을 clientㅇfd(file description)로 만듦
+  Rio_readinitb(&rio, clientfd); // rio의 주소값을 clientfd에 연결
   
-  while (Fgets(buf, MAXLINE, stdin) != NULL){ // 표준 입력 스트림을 사용해서 buf 에서 MAXLINE 크기 만큼 읽어오고
-    Rio_writen(clientfd, buf, strlen(buf)); // 연결된 주소 clientfd 에 buf를 strlen(buf) 만큼 복사해 넣고
-    Rio_readlineb(&rio, buf, MAXLINE); // rio에 있는 값을 buf에 복사해넣음 MAXLINE 만큼
-    Fputs(buf, stdout); // 표준 출력 스트림에 buf를 넣음
+  // buf 에서 MAXLINE 크기 만큼 읽어와서 (NULL이 아니면)
+  while (Fgets(buf, MAXLINE, stdin) != NULL){ 
+    Rio_writen(clientfd, buf, strlen(buf)); // 연결된 주소 clientfd에 buf내의 값을 복사 (buf 길이 만큼)
+    Rio_readlineb(&rio, buf, MAXLINE); // rio에 있는 값을 MAXLINE만큼 buf에 복사
+    Fputs(buf, stdout); // 표준 출력 stream에 buf를 넣음
   }
   Close(clientfd); // 메모리 누수를 막기 위해서 clientfd를 닫음
   exit(0); // 함수 밖으로 나감
