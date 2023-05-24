@@ -1,33 +1,16 @@
 #include "csapp.h"
 
-// doit은 무엇을 하는 함수일까요? 트랜잭션 처리함수. 들어온 요청을 읽고 분석.
-// GETrequest가 들어오면 정적인지 동적인지 파악하여서 각각에 맞는 함수를 실행시킴. 오류시 에러표시도 포함.
-
 void doit(int fd);
-
-// rio -> ROBUST I/O
-void read_requesthdrs(rio_t *rp, int fd); // rio_t는 csapp.h에 정의되어있습니다 40줄쯤..
-
-// parse_uri는 무엇을 하는 함수일까요? 폴더안에서 특정 이름을 찾아서 파일이 동적인건지 정적인건지 알려줌.
+void read_requesthdrs(rio_t *rp, int fd); 
 int parse_uri(char *uri, char *filename, char *cgiargs);
-
-// serve_static은 무엇을 하는 함수일까요? 정적인 파일일때 파일을 클라이언트로 응답
 void serve_static(int fd, char *filename, int filesize, char *method);
-
-// get_filetype은 무엇을 하는 함수일까요? http,text,jpg,png,gif파일을 찾아서 serve_static에서 사용
 void get_filetype(char *filename, char *filetype);
-
-// serve_dynamic은 무엇을 하는 함수일까요? 동적인 파일을 받았을때 fork 함수로 자식프로세스를 만든후에 거기서 CGI프로그램 실행한다. s
 void serve_dynamic(int fd, char *filename, char *cgiargs);
-
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg);
-
 void write_requesthdrs(rio_t *rp, int fd);
-
 void echo(int fd);
 
-// main이 받는 변수 argc 와 argv는 무엇일까 -> 배열 길이, filename, port
-// main에서 하는 일은? 무한 루프를 돌면서 대기하는 역할
+// 무한 루프를 돌면서 대기하는 역할 (argc 와 argv는 -> 배열 길이, filename, port)
 int main(int argc, char **argv)
 {
     int listenfd, connfd;                  // 여기서의 fd는 도대체 무슨 약자인걸까? -> file description
@@ -80,21 +63,19 @@ void echo(int connfd)
     }
 }
 
+// 트랜잭션 처리함수. 들어온 요청을 읽고 분석.
+// GET request만 처리가능. 나머지는 error처리. 정적인지 동적인지 파악하여서 각각에 맞는 함수를 실행시킴.
 void doit(int fd)
 {
     int is_static;
     struct stat sbuf;
     char buf[MAXLINE], method[MAXLINE], uri[MAXLINE], version[MAXLINE];
-
     char filename[MAXLINE], cgiargs[MAXLINE];
     rio_t rio;
-    rio_t erio;
-    // 요청 라인 읽고 분석하기...
-    /* Read request line and headers */
-    Rio_readinitb(&rio, fd);           //rio 구조체 초기화..
-    Rio_readlineb(&rio, buf, MAXLINE); //buf에 읽은 것 담겨있음.
-                                       //buf에 읽은 것 담겨있음.
 
+    // 요청 라인 읽고 분석
+    Rio_readinitb(&rio, fd);           //rio 구조체 초기화
+    Rio_readlineb(&rio, buf, MAXLINE); //buf에 read내용 담겨있음
     printf("\n Request headers: \n");
     printf("%s", buf);
     sscanf(buf, "%s %s %s", method, uri, version);
@@ -105,14 +86,13 @@ void doit(int fd)
         clienterror(fd, method, "501", "Not implemented", "Tiny does not implement this method");
         return;
     }
-    // get인 경우 다른 요청 헤더 무시.
 
-    // URI 분석하기
-    // 파일이 없는 경우 에러 띄우기
-    /* Parse URI from GET request */
-
+    // 다른 요청 헤더들은 무시
     read_requesthdrs(&rio, fd);
+
+    // 정적 or 동적 컨텐츠인지 플래그 설정 
     is_static = parse_uri(uri, filename, cgiargs);
+
     if (stat(filename, &sbuf) < 0)
     {
         clienterror(fd, filename, "404", "Not found", "Tiny couldn't find this file");
@@ -170,7 +150,7 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg, char *longms
     Rio_writen(fd, body, strlen(body));
 }
 
-// 요청헤더 읽기
+// 요청헤더 읽기. (rio -> ROBUST I/O, rio_t는 csapp.h에 정의)
 void read_requesthdrs(rio_t *rp, int fd)
 {
     char result[MAXLINE];
@@ -206,6 +186,7 @@ void write_requesthdrs(rio_t *rp, int fd)
     return;
 }
 
+// 폴더안에서 특정 이름을 찾아서 파일이 동적인건지 정적인건지 알려줌.
 int parse_uri(char *uri, char *filename, char *cgiargs)
 {
     char *ptr;
@@ -240,7 +221,7 @@ int parse_uri(char *uri, char *filename, char *cgiargs)
     }
 }
 
-// fd 응답받는 소켓(연결식별자), 파일 이름, 파일 사이즈
+// 정적인 파일일때 파일을 클라이언트로 응답. fd 응답받는 소켓(연결식별자), 파일이름, 파일사이즈
 void serve_static(int fd, char *filename, int filesize, char *method)
 {
     rio_t file_rio;
@@ -254,7 +235,7 @@ void serve_static(int fd, char *filename, int filesize, char *method)
     printf("Response header:\n");
 
     //클라이언트에게 응답 보내기
-    sprintf(buf, "HTTP/1.1 200 OK\r\n");
+    sprintf(buf, "HTTP/1.0 200 OK\r\n");
     sprintf(buf, "%sServer: Tiny Web Server\r\n", buf);
     sprintf(buf, "%sConnection: close\r\n", buf);
     sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
@@ -287,7 +268,7 @@ void serve_static(int fd, char *filename, int filesize, char *method)
     }
 }
 
-/* get_filetype - Derive file type from filename */
+// http,text,jpg,png,gif파일을 찾아서 serve_static에서 사용
 void get_filetype(char *filename, char *filetype)
 {
     if (strstr(filename, ".html"))
@@ -306,25 +287,25 @@ void get_filetype(char *filename, char *filetype)
         strcpy(filetype, "text/plain");
 }
 
+// 동적인 파일을 받았을때 fork 함수로 자식프로세스를 만든후에 거기서 CGI프로그램 실행한다.
 void serve_dynamic(int fd, char *filename, char *cgiargs)
 {
     char buf[MAXLINE], *emptylist[] = {NULL};
-    /* Return first part of HTTP response */
+    // HTTP 응답의 첫번째 부분 return
     sprintf(buf, "HTTP/1.0 200 OK\r\n");
     Rio_writen(fd, buf, strlen(buf));
     sprintf(buf, "Server: Tiny Web Server\r\n");
     Rio_writen(fd, buf, strlen(buf));
-    if (Fork() == 0) // 자식 생성 이 아래 내용은 각각 실행 자식만 조건 문 안 실행
+    
+    
+    if (Fork() == 0) // 자식 생성
     /* Real server would set all CGI vars here */
     {
         // 1이면 원래 있던거 지우고 다시 넣기
         setenv("QUERY_STRING", cgiargs, 1); // a=1&b=1
-        // 파일 복사하기
-        // 표준 출력이 fd에 저장되게 만드는 듯
-        // 원래는 STDOUT_FILENO -> 1 임. 표준 파일 식별자.
+        // 파일 복사하기, 표준 출력이 fd에 저장되게 만드는 듯, 원래는 STDOUT_FILENO -> 1 임. 표준 파일 식별자.
         Dup2(fd, STDOUT_FILENO); /* Redirect stdout to client */
-        // 파일 네임의 실행 코드를 가지고 와서 실행,
-        // 즉 자식 프로세스에는 기존 기능이 전부 없어지고 파일이 실행되는 것임.
+        // 파일 네임의 실행 코드를 가지고 와서 실행, 즉 자식 프로세스에는 기존 기능이 전부 없어지고 파일이 실행되는 것임.
         Execve(filename, emptylist, environ); /* Run CGI program */
     }
     Wait(NULL); // 자식 끝날때까지 기다림
