@@ -247,7 +247,6 @@ int reader(int connfd, char *url) {
   return return_flag;
 }
 
-
 /* cache에서 요청한 url의 정보 쓰기 */
 /* 세마포어를 이용해서 writer는 한번 */
 void writer(char *url, char *buf) {
